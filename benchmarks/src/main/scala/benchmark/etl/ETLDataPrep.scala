@@ -98,7 +98,7 @@ class ETLDataPrep(conf: ETLDataPrepConf) extends Benchmark(conf) {
 
   def runInternal(): Unit = {
     for ((k, v) <- extraConfs) spark.conf.set(k, v)
-    spark.sparkContext.setLogLevel("WARN")
+    spark.sparkContext.setLogLevel("INFO")
     log("All configs:\n\t" + spark.conf.getAll.toSeq.sortBy(_._1).mkString("\n\t"))
 
     runQuery(s"DROP DATABASE IF EXISTS ${dbName} CASCADE", s"etlPrep0.1-drop-database")

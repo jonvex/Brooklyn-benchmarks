@@ -87,7 +87,7 @@ class TPCDSBenchmark(conf: TPCDSBenchmarkConf) extends Benchmark(conf) {
 
   def runInternal(): Unit = {
     for ((k, v) <- extraConfs) spark.conf.set(k, v)
-    spark.sparkContext.setLogLevel("WARN")
+    spark.sparkContext.setLogLevel("INFO")
     log("All configs:\n\t" + spark.conf.getAll.toSeq.sortBy(_._1).mkString("\n\t"))
     spark.sql(s"USE $dbName")
     for (iteration <- 1 to conf.iterations) {

@@ -102,23 +102,30 @@ class ETLBenchmark(conf: ETLBenchmarkConf) extends Benchmark(conf) {
     case "hudi" =>
       // NOTE: This is only used to create single (denormalized) store_sales table;
       //       as such we're reusing primary key we're generally using for store_sales in TPC-DS benchmarks
+      // '${if (writeMode == "copy-on-write") "cow" else "mor"}'
       s"""TBLPROPERTIES (
-         |  type = '${if (writeMode == "copy-on-write") "cow" else "mor"}',
+         |  type = 'mor',
          |  primaryKey = 'ss_item_sk,ss_ticket_number',
          |  preCombineField = 'ss_sold_time_sk',
          |  'hoodie.table.name' = 'store_sales_denorm_${formatName}',
          |  'hoodie.table.partition.fields' = 'ss_sold_date_sk',
-         |  'hoodie.table.keygenerator.class' = 'org.apache.hudi.keygen.ComplexKeyGenerator',
          |  'hoodie.parquet.compression.codec' = 'snappy',
+         |  'hoodie.sql.bulk.insert.enable' = 'true',
+         |  'hoodie.table.keygenerator.class' = 'org.apache.hudi.keygen.ComplexKeyGenerator',
          |  'hoodie.datasource.write.hive_style_partitioning' = 'true',
          |  'hoodie.sql.insert.mode'= 'non-strict',
-         |  'hoodie.sql.bulk.insert.enable' = 'true',
-         |  'hoodie.combine.before.insert' = 'false'
+         |  'hoodie.combine.before.insert' = 'false',
+         |  'hoodie.metadata.enable' = 'true'
          |)""".stripMargin
 
     case "delta" => ""
   }
-
+  //   Add below configs to table props to run with RLI or colstats
+  //  'hoodie.metadata.record.index.enable' = 'true',
+  //  'hoodie.metadata.record.index.min.filegroup.count' = '1000',
+  //  'hoodie.metadata.record.index.max.filegroup.count' = '1000',
+  //  'hoodie.enable.data.skipping' = 'true',
+  //  'hoodie.datasource.write.row.writer.enable' = 'false'
   require(conf.scaleInGB > 0)
   require(Seq(1, 1000, 3000).contains(conf.scaleInGB), "")
   val sourceLocation = conf.sourcePath.getOrElse {
@@ -135,16 +142,18 @@ class ETLBenchmark(conf: ETLBenchmarkConf) extends Benchmark(conf) {
 
   def runInternal(): Unit = {
     for ((k, v) <- extraConfs) spark.conf.set(k, v)
-    spark.sparkContext.setLogLevel("WARN")
+    spark.sparkContext.setLogLevel("INFO")
     log("All configs:\n\t" + spark.conf.getAll.toSeq.sortBy(_._1).mkString("\n\t"))
 
     runQuery(s"DROP DATABASE IF EXISTS ${dbName} CASCADE", s"etl0.1-drop-database")
     runQuery(s"CREATE DATABASE IF NOT EXISTS ${dbName}", s"etl0.2-create-database")
     runQuery(s"USE $dbName", s"etl0.3-use-database")
     runQuery(s"DROP TABLE IF EXISTS store_sales_denorm_${formatName}", s"etl0.4-drop-table")
+    // To just run limited ETL's
+    // writeQueries.filter { case (name: String, sql: String) => Seq("etl1-createTable").contains(name) }.toSeq.sortBy(_._1)
 
     writeQueries.toSeq.sortBy(_._1).foreach { case (name, sql) =>
-      runQuery(sql, iteration = Some(1), queryName = name)
+      //runQuery(sql, iteration = Some(1), queryName = name)
       // Print table stats
       if (conf.formatName == "iceberg") {
         runQuery(s"SELECT * FROM spark_catalog.${dbName}.store_sales_denorm_${formatName}.snapshots",
@@ -153,7 +162,8 @@ class ETLBenchmark(conf: ETLBenchmarkConf) extends Benchmark(conf) {
         runQuery(s"DESCRIBE HISTORY store_sales_denorm_${formatName}",
           printRows = true, queryName = s"${name}-file-stats")
       }
-      // Run read queries
+      // To run with limited queries
+      // .filter { case (name: String, sql: String) => Seq("q3", "q6").contains(name) }
       for (iteration <- 1 to conf.iterations) {
         readQueries.toSeq.sortBy(_._1).foreach { case (name, sql) =>
           runQuery(sql, iteration = Some(iteration), queryName = name)
@@ -182,4 +192,3 @@ object ETLBenchmark {
     }
   }
 }
-

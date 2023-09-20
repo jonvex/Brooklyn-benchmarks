@@ -67,6 +67,11 @@ class BenchmarkSpec:
             (f"--packages {self.maven_artifacts} " if self.maven_artifacts else "") +
             f"{spark_conf_str} --class {self.benchmark_main_class} " +
             f"{benchmark_jar_path} {main_class_args}"
+        ) if self.maven_artifacts and not self.maven_artifacts.startswith("s3") else (
+                f"spark-submit {spark_shell_args_str} " +
+                f"""--num-executors 16 --conf spark.driver.maxResultSize=8g --driver-memory 50g --conf spark.memory.storageFraction=0.4 --executor-memory 48g --conf spark.executor.memoryOverhead=3g --executor-cores 7 --conf "spark.driver.defaultJavaOptions=-XX:+UseG1GC" --conf "spark.executor.defaultJavaOptions=-XX:+UseG1GC"      --conf spark.ui.proxyBase="" --conf "spark.sql.catalogImplementation=in-memory" --conf 'spark.executor.heartbeatInterval=300000'  --conf 'spark.network.timeout=500000' --conf "spark.kryoserializer.buffer.max=1024m" --conf "spark.rdd.compress=true" --conf "fs.s3a.connection.maximum=1000" --conf "spark.hadoop.fs.s3a.connection.maximum=1000" --conf "spark.rdd.compress=true" --conf "fs.s3a.connection.maximum=1000" --conf "spark.hadoop.fs.s3a.connection.maximum=1000" --conf "fs.s3a.threads.max=200" """ +
+                f"{spark_conf_str} --class {self.benchmark_main_class} " +
+                f"{benchmark_jar_path},{self.maven_artifacts} {main_class_args}"
         )
         print(spark_submit_cmd)
         return spark_submit_cmd
@@ -79,8 +84,13 @@ class BenchmarkSpec:
         spark_shell_args_str = ' '.join(self.extra_spark_shell_args)
         spark_shell_cmd = (
                 f"spark-shell {spark_shell_args_str} " +
+                f"""--num-executors 16 --conf spark.driver.maxResultSize=8g --driver-memory 50g --conf spark.memory.storageFraction=0.4 --executor-memory 48g --conf spark.executor.memoryOverhead=3g --executor-cores 7 --conf "spark.driver.defaultJavaOptions=-XX:+UseG1GC" --conf "spark.executor.defaultJavaOptions=-XX:+UseG1GC"      --conf spark.ui.proxyBase="" --conf "spark.sql.catalogImplementation=in-memory" --conf 'spark.executor.heartbeatInterval=300000'  --conf 'spark.network.timeout=500000' --conf "spark.kryoserializer.buffer.max=1024m" --conf "spark.rdd.compress=true" --conf "fs.s3a.connection.maximum=1000" --conf "spark.hadoop.fs.s3a.connection.maximum=1000" --conf "spark.rdd.compress=true" --conf "fs.s3a.connection.maximum=1000" --conf "spark.hadoop.fs.s3a.connection.maximum=1000" --conf "fs.s3a.threads.max=200" """ +
                 (f"--packages {self.maven_artifacts} " if self.maven_artifacts else "") +
                 f"{spark_conf_str} --jars {benchmark_jar_path} -I {benchmark_init_file_path}"
+        ) if self.maven_artifacts and not self.maven_artifacts.startswith("s3") else (
+                f"spark-shell {spark_shell_args_str} " +
+                f"""--num-executors 16 --conf spark.driver.maxResultSize=8g --driver-memory 50g --conf spark.memory.storageFraction=0.4 --executor-memory 48g --conf spark.executor.memoryOverhead=3g --executor-cores 7 --conf "spark.driver.defaultJavaOptions=-XX:+UseG1GC" --conf "spark.executor.defaultJavaOptions=-XX:+UseG1GC"      --conf spark.ui.proxyBase="" --conf "spark.sql.catalogImplementation=in-memory" --conf 'spark.executor.heartbeatInterval=300000'  --conf 'spark.network.timeout=500000' --conf "spark.kryoserializer.buffer.max=1024m" --conf "spark.rdd.compress=true" --conf "fs.s3a.connection.maximum=1000" --conf "spark.hadoop.fs.s3a.connection.maximum=1000" --conf "spark.rdd.compress=true" --conf "fs.s3a.connection.maximum=1000" --conf "spark.hadoop.fs.s3a.connection.maximum=1000" --conf "fs.s3a.threads.max=200" """ +
+                f"{spark_conf_str} --jars {benchmark_jar_path},{self.maven_artifacts} -I {benchmark_init_file_path}"
         )
         print(spark_shell_cmd)
         return spark_shell_cmd
@@ -214,6 +224,7 @@ class HudiBenchmarkSpec(BenchmarkSpec):
         super().__init__(
             format_name="hudi",
             maven_artifacts=f"org.apache.hudi:hudi-spark3.3-bundle_2.12:{hudi_version}",
+            #maven_artifacts=f"s3://performance-benchmark-datasets-us-east-2/brooklyn-benchmarks-0.14.0/jars/master_1008_rli/hudi-spark3.3-bundle_2.12-0.14.0-SNAPSHOT.jar",
             spark_confs=hudi_spark_confs,
             benchmark_main_class=benchmark_main_class,
             main_class_args=main_class_args,
