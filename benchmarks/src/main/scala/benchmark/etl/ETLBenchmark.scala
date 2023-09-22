@@ -105,7 +105,7 @@ class ETLBenchmark(conf: ETLBenchmarkConf) extends Benchmark(conf) {
       // '${if (writeMode == "copy-on-write") "cow" else "mor"}'
       s"""TBLPROPERTIES (
          |  type = 'mor',
-         |  primaryKey = 'ss_item_sk,ss_ticket_number',
+         |  primaryKey = 'ss_ticket_number',
          |  preCombineField = 'ss_sold_time_sk',
          |  'hoodie.table.name' = 'store_sales_denorm_${formatName}',
          |  'hoodie.table.partition.fields' = 'ss_sold_date_sk',
@@ -115,7 +115,12 @@ class ETLBenchmark(conf: ETLBenchmarkConf) extends Benchmark(conf) {
          |  'hoodie.datasource.write.hive_style_partitioning' = 'true',
          |  'hoodie.sql.insert.mode'= 'non-strict',
          |  'hoodie.combine.before.insert' = 'false',
-         |  'hoodie.metadata.enable' = 'true'
+         |  'hoodie.metadata.enable' = 'true',
+         |  'hoodie.metadata.record.index.enable' = 'true',
+         |  'hoodie.metadata.record.index.min.filegroup.count' = '1000',
+         |  'hoodie.metadata.record.index.max.filegroup.count' = '1000',
+         |  'hoodie.enable.data.skipping' = 'true',
+         |  'hoodie.datasource.write.row.writer.enable' = 'false'
          |)""".stripMargin
 
     case "delta" => ""
@@ -149,6 +154,14 @@ class ETLBenchmark(conf: ETLBenchmarkConf) extends Benchmark(conf) {
     runQuery(s"CREATE DATABASE IF NOT EXISTS ${dbName}", s"etl0.2-create-database")
     runQuery(s"USE $dbName", s"etl0.3-use-database")
     runQuery(s"DROP TABLE IF EXISTS store_sales_denorm_${formatName}", s"etl0.4-drop-table")
+    //setup data for RLI by deduplicating
+    spark.sql(
+      "SELECT * FROM `${sourceFormat}`.`${sourceLocation}store_sales_denorm_start`"
+    ).dropDuplicates("ss_ticket_number").withColumn("ss_sold_time_sk",expr(
+      "case when ss_sold_time_sk is null then 1 else ss_sold_time_sk end"
+    )).createOrReplaceTempView("store_sales_denorm_start")
+
+
     // To just run limited ETL's
     // writeQueries.filter { case (name: String, sql: String) => Seq("etl1-createTable").contains(name) }.toSeq.sortBy(_._1)
 
@@ -165,7 +178,7 @@ class ETLBenchmark(conf: ETLBenchmarkConf) extends Benchmark(conf) {
       // To run with limited queries
       // .filter { case (name: String, sql: String) => Seq("q3", "q6").contains(name) }
       for (iteration <- 1 to conf.iterations) {
-        readQueries.toSeq.sortBy(_._1).foreach { case (name, sql) =>
+        readQueries.toSeq.filter { case (name: String, sql: String) => Seq("q3", "q100", "q101").contains(name) }.sortBy(_._1).foreach { case (name, sql) =>
           runQuery(sql, iteration = Some(iteration), queryName = name)
         }
       }

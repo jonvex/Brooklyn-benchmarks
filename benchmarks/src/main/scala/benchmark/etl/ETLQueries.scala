@@ -152,10 +152,11 @@ class ETLQueries(
       s"""
       CREATE TABLE store_sales_denorm_${formatName}
       USING ${formatName}
-      LOCATION '${dbLocation}/store_sales_denorm'
-      PARTITIONED BY (ss_sold_date_sk)
-      ${tblProperties}
-      AS SELECT * FROM `${sourceFormat}`.`${sourceLocation}store_sales_denorm_start`
+      -- LOCATION '${dbLocation}/store_sales_denorm'
+      LOCATION 's3://performance-benchmark-datasets-us-east-2/brooklyn-benchmarks-0.14.0/1TB/databases/manual_rli_load_0911/store_sales_denorm_start'
+      -- PARTITIONED BY (ss_sold_date_sk)
+      -- ${tblProperties}
+      -- AS SELECT * FROM store_sales_denorm_start`
       """,
     // Step 2 - Add the Medium Upsert data into the table
     "etl2-upsertMedium" ->
@@ -163,7 +164,6 @@ class ETLQueries(
       MERGE INTO store_sales_denorm_${formatName} AS a
       USING `${sourceFormat}`.`${sourceLocation}store_sales_denorm_upsert` AS b
       ON a.ss_sold_date_sk = b.ss_sold_date_sk
-      AND a.ss_item_sk = b.ss_item_sk
       AND a.ss_ticket_number = b.ss_ticket_number
       WHEN MATCHED THEN UPDATE SET *
       WHEN NOT MATCHED THEN INSERT *
@@ -174,7 +174,6 @@ class ETLQueries(
       MERGE INTO store_sales_denorm_${formatName} AS a
       USING `${sourceFormat}`.`${sourceLocation}store_sales_denorm_delete_xsmall` AS b
       ON a.ss_sold_date_sk = b.ss_sold_date_sk
-      AND a.ss_item_sk = b.ss_item_sk
       AND a. ss_ticket_number = b. ss_ticket_number
       WHEN MATCHED THEN DELETE
       """,
@@ -184,7 +183,6 @@ class ETLQueries(
       MERGE INTO store_sales_denorm_${formatName} AS a
       USING `${sourceFormat}`.`${sourceLocation}store_sales_denorm_delete_small` AS b
       ON a.ss_sold_date_sk = b.ss_sold_date_sk
-      AND a.ss_item_sk = b.ss_item_sk
       AND a. ss_ticket_number = b. ss_ticket_number
       WHEN MATCHED THEN DELETE
       """,
@@ -194,7 +192,6 @@ class ETLQueries(
       MERGE INTO store_sales_denorm_${formatName} AS a
       USING `${sourceFormat}`.`${sourceLocation}store_sales_denorm_delete_medium` AS b
       ON a.ss_sold_date_sk = b.ss_sold_date_sk
-      AND a.ss_item_sk = b.ss_item_sk
       AND a. ss_ticket_number = b. ss_ticket_number
       WHEN MATCHED THEN DELETE
       """,
@@ -526,8 +523,14 @@ class ETLQueries(
       SELECT * FROM
       store_sales_denorm_${formatName} a
       WHERE a.ss_sold_date_sk = '2451457'
-      AND a.ss_item_sk = '167938'
-      AND a. ss_ticket_number = '128544840'
-      """
+      AND a.ss_ticket_number = '128544840'
+      """,
+    "q101" ->
+      s"""
+            DELETE FROM
+            store_sales_denorm_${formatName} a
+            WHERE a.ss_sold_date_sk = '2451457'
+            AND a.ss_ticket_number = '128544840'
+            """
    )
 }
