@@ -109,18 +109,14 @@ class ETLBenchmark(conf: ETLBenchmarkConf) extends Benchmark(conf) {
          |  preCombineField = 'ss_sold_time_sk',
          |  'hoodie.table.name' = 'store_sales_denorm_${formatName}',
          |  'hoodie.table.partition.fields' = 'ss_sold_date_sk',
+         |  'hoodie.datasource.write.table.type' -> 'MERGE_ON_READ',
          |  'hoodie.parquet.compression.codec' = 'snappy',
-         |  'hoodie.sql.bulk.insert.enable' = 'true',
-         |  'hoodie.table.keygenerator.class' = 'org.apache.hudi.keygen.ComplexKeyGenerator',
          |  'hoodie.datasource.write.hive_style_partitioning' = 'true',
-         |  'hoodie.sql.insert.mode'= 'non-strict',
-         |  'hoodie.combine.before.insert' = 'false',
          |  'hoodie.metadata.enable' = 'true',
          |  'hoodie.metadata.record.index.enable' = 'true',
          |  'hoodie.metadata.record.index.min.filegroup.count' = '1000',
          |  'hoodie.metadata.record.index.max.filegroup.count' = '1000',
-         |  'hoodie.enable.data.skipping' = 'true',
-         |  'hoodie.datasource.write.row.writer.enable' = 'false'
+         |  'hoodie.enable.data.skipping' = 'true'
          |)""".stripMargin
 
     case "delta" => ""
@@ -179,7 +175,7 @@ class ETLBenchmark(conf: ETLBenchmarkConf) extends Benchmark(conf) {
       // To run with limited queries
       // .filter { case (name: String, sql: String) => Seq("q3", "q6").contains(name) }
       for (iteration <- 1 to conf.iterations) {
-        readQueries.toSeq.filter { case (name: String, sql: String) => Seq("q3", "q100", "q101").contains(name) }.sortBy(_._1).foreach { case (name, sql) =>
+        readQueries.toSeq.filter { case (name: String, sql: String) => Seq("q3", "q100").contains(name) }.sortBy(_._1).foreach { case (name, sql) =>
           runQuery(sql, iteration = Some(iteration), queryName = name)
         }
       }

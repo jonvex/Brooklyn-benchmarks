@@ -152,11 +152,10 @@ class ETLQueries(
       s"""
       CREATE TABLE store_sales_denorm_${formatName}
       USING ${formatName}
-      -- LOCATION '${dbLocation}/store_sales_denorm'
-      LOCATION 's3://performance-benchmark-datasets-us-east-2/brooklyn-benchmarks-0.14.0/1TB/databases/manual_rli_load_0911/store_sales_denorm_start'
-      -- PARTITIONED BY (ss_sold_date_sk)
-      -- ${tblProperties}
-      -- AS SELECT * FROM store_sales_denorm_start`
+      LOCATION '${dbLocation}/store_sales_denorm'
+      PARTITIONED BY (ss_sold_date_sk)
+      ${tblProperties}
+      AS SELECT * FROM store_sales_denorm_start`
       """,
     // Step 2 - Add the Medium Upsert data into the table
     "etl2-upsertMedium" ->
