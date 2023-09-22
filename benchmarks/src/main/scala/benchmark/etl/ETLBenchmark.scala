@@ -155,8 +155,9 @@ class ETLBenchmark(conf: ETLBenchmarkConf) extends Benchmark(conf) {
     runQuery(s"USE $dbName", s"etl0.3-use-database")
     runQuery(s"DROP TABLE IF EXISTS store_sales_denorm_${formatName}", s"etl0.4-drop-table")
     //setup data for RLI by deduplicating
+    import org.apache.spark.sql.functions.expr
     spark.sql(
-      "SELECT * FROM `${sourceFormat}`.`${sourceLocation}store_sales_denorm_start`"
+      s"SELECT * FROM `${sourceFormat}`.`${sourceLocation}store_sales_denorm_start`"
     ).dropDuplicates("ss_ticket_number").withColumn("ss_sold_time_sk",expr(
       "case when ss_sold_time_sk is null then 1 else ss_sold_time_sk end"
     )).createOrReplaceTempView("store_sales_denorm_start")
@@ -166,7 +167,7 @@ class ETLBenchmark(conf: ETLBenchmarkConf) extends Benchmark(conf) {
     // writeQueries.filter { case (name: String, sql: String) => Seq("etl1-createTable").contains(name) }.toSeq.sortBy(_._1)
 
     writeQueries.toSeq.sortBy(_._1).foreach { case (name, sql) =>
-      //runQuery(sql, iteration = Some(1), queryName = name)
+      runQuery(sql, iteration = Some(1), queryName = name)
       // Print table stats
       if (conf.formatName == "iceberg") {
         runQuery(s"SELECT * FROM spark_catalog.${dbName}.store_sales_denorm_${formatName}.snapshots",
