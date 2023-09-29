@@ -111,12 +111,7 @@ class ETLBenchmark(conf: ETLBenchmarkConf) extends Benchmark(conf) {
          |  'hoodie.table.partition.fields' = 'ss_sold_date_sk',
          |  'hoodie.datasource.write.table.type' = 'MERGE_ON_READ',
          |  'hoodie.parquet.compression.codec' = 'snappy',
-         |  'hoodie.datasource.write.hive_style_partitioning' = 'true',
-         |  'hoodie.metadata.enable' = 'true',
-         |  'hoodie.metadata.record.index.enable' = 'true',
-         |  'hoodie.metadata.record.index.min.filegroup.count' = '1000',
-         |  'hoodie.metadata.record.index.max.filegroup.count' = '1000',
-         |  'hoodie.enable.data.skipping' = 'true'
+         |  'hoodie.datasource.write.hive_style_partitioning' = 'true'
          |)""".stripMargin
 
     case "delta" => ""
@@ -145,9 +140,9 @@ class ETLBenchmark(conf: ETLBenchmarkConf) extends Benchmark(conf) {
     for ((k, v) <- extraConfs) spark.conf.set(k, v)
     spark.sparkContext.setLogLevel("INFO")
     log("All configs:\n\t" + spark.conf.getAll.toSeq.sortBy(_._1).mkString("\n\t"))
-    runQuery(s"SET hoodie.enable.data.skipping = true")
-    runQuery(s"SET hoodie.metadata.record.index.enable = true")
-    runQuery(s"SET hoodie.metadata.enable = true")
+    //runQuery(s"SET hoodie.enable.data.skipping = true")
+    //runQuery(s"SET hoodie.metadata.record.index.enable = true")
+    //runQuery(s"SET hoodie.metadata.enable = true")
     runQuery(s"DROP DATABASE IF EXISTS ${dbName} CASCADE", s"etl0.1-drop-database")
     runQuery(s"CREATE DATABASE IF NOT EXISTS ${dbName}", s"etl0.2-create-database")
     runQuery(s"USE $dbName", s"etl0.3-use-database")
@@ -159,18 +154,18 @@ class ETLBenchmark(conf: ETLBenchmarkConf) extends Benchmark(conf) {
     ).dropDuplicates("ss_ticket_number").withColumn("ss_sold_time_sk",expr(
       "case when ss_sold_time_sk is null then 1 else ss_sold_time_sk end"
     )).createOrReplaceTempView("store_sales_denorm_start")
-//    val configs = Map(
-//      "hoodie.datasource.write.operation" -> "upsert",
-//      "hoodie.datasource.write.recordkey.field" -> "ss_ticket_number",
-//      "hoodie.datasource.write.precombine.field" -> "ss_sold_time_sk",
-//      "hoodie.datasource.write.partitionpath.field" -> "ss_sold_date_sk",
-//      "hoodie.datasource.write.table.type" -> "MERGE_ON_READ",
-//      "hoodie.datasource.write.hive_style_partitioning" -> "true",
-//      "hoodie.table.name" -> "store_sales_denorm_hudi",
-//      "hoodie.parquet.compression.codec" -> "snappy"
-//    )
-    //spark.read.table("store_sales_denorm_start").write.format("hudi").options(configs).mode("overwrite").save(s"${dbLocation}/store_sales_denorm")
-    spark.read.table("store_sales_denorm_start").write.partitionBy("ss_sold_date_sk").format("delta").mode("overwrite").save(s"${dbLocation}/store_sales_denorm")
+    val configs = Map(
+      "hoodie.datasource.write.operation" -> "upsert",
+      "hoodie.datasource.write.recordkey.field" -> "ss_ticket_number",
+      "hoodie.datasource.write.precombine.field" -> "ss_sold_time_sk",
+      "hoodie.datasource.write.partitionpath.field" -> "ss_sold_date_sk",
+      "hoodie.datasource.write.table.type" -> "MERGE_ON_READ",
+      "hoodie.datasource.write.hive_style_partitioning" -> "true",
+      "hoodie.table.name" -> "store_sales_denorm_hudi",
+      "hoodie.parquet.compression.codec" -> "snappy"
+    )
+    spark.read.table("store_sales_denorm_start").write.format("hudi").options(configs).mode("overwrite").save(s"${dbLocation}/store_sales_denorm")
+    //spark.read.table("store_sales_denorm_start").write.partitionBy("ss_sold_date_sk").format("delta").mode("overwrite").save(s"${dbLocation}/store_sales_denorm")
     runQuery(s"USE $dbName", s"etl0.3-use-database")
     // To just run limited ETL's
     // writeQueries.filter { case (name: String, sql: String) => Seq("etl1-createTable").contains(name) }.toSeq.sortBy(_._1)
