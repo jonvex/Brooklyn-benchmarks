@@ -154,7 +154,7 @@ class ETLQueries(
       s"""
       CREATE TABLE store_sales_denorm_${formatName}
       USING ${formatName}
-      LOCATION '${dbLocation}/store_sales_denorm'''
+      LOCATION '${dbLocation}/store_sales_denorm'
       """,
     // Step 2 - Add the Medium Upsert data into the table
     "etl2-upsertMedium" ->

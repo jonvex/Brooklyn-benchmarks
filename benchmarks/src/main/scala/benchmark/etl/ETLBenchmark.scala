@@ -169,7 +169,7 @@ class ETLBenchmark(conf: ETLBenchmarkConf) extends Benchmark(conf) {
       "hoodie.table.name" -> "store_sales_denorm_hudi",
       "hoodie.parquet.compression.codec" -> "snappy"
     )
-    // spark.read.table("store_sales_denorm_start").write.format("hudi").options(configs).mode("overwrite").save(s"${dbLocation}/store_sales_denorm")
+    spark.read.table("store_sales_denorm_start").write.format("hudi").options(configs).mode("overwrite").save(s"${dbLocation}/store_sales_denorm")
 
     runQuery(s"USE $dbName", s"etl0.3-use-database")
     // To just run limited ETL's
