@@ -145,7 +145,9 @@ class ETLQueries(
       DISTRIBUTE BY ss_sold_date_sk
       """
   )
-
+"""PARTITIONED BY (ss_sold_date_sk)
+  |      ${tblProperties}
+  |      AS SELECT * FROM store_sales_denorm_start""".stripMargin
   val writeQueries: Map[String, String] = Map(
     // Step 1 - Bulk load the starting point table
     "etl1-createTable" ->
@@ -153,9 +155,6 @@ class ETLQueries(
       CREATE TABLE store_sales_denorm_${formatName}
       USING ${formatName}
       LOCATION '${dbLocation}/store_sales_denorm'
-      PARTITIONED BY (ss_sold_date_sk)
-      ${tblProperties}
-      AS SELECT * FROM store_sales_denorm_start
       """,
     // Step 2 - Add the Medium Upsert data into the table
     "etl2-upsertMedium" ->
