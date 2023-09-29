@@ -155,7 +155,8 @@ class ETLQueries(
       CREATE TABLE store_sales_denorm_${formatName}
       USING ${formatName}
       LOCATION '${dbLocation}/store_sales_denorm'
-      """,
+      PARTITIONED BY (ss_sold_date_sk) ${tblProperties}
+      AS SELECT * FROM store_sales_denorm_start""".stripMargin,
     // Step 2 - Add the Medium Upsert data into the table
     "etl2-upsertMedium" ->
       s"""
