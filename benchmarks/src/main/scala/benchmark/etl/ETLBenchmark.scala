@@ -109,7 +109,7 @@ class ETLBenchmark(conf: ETLBenchmarkConf) extends Benchmark(conf) {
          |  preCombineField = 'ss_sold_time_sk',
          |  'hoodie.table.name' = 'store_sales_denorm_${formatName}',
          |  'hoodie.table.partition.fields' = 'ss_sold_date_sk',
-         |  'hoodie.datasource.write.table.type' -> 'MERGE_ON_READ',
+         |  'hoodie.datasource.write.table.type' = 'MERGE_ON_READ',
          |  'hoodie.parquet.compression.codec' = 'snappy',
          |  'hoodie.datasource.write.hive_style_partitioning' = 'true',
          |  'hoodie.metadata.enable' = 'true',
@@ -145,7 +145,9 @@ class ETLBenchmark(conf: ETLBenchmarkConf) extends Benchmark(conf) {
     for ((k, v) <- extraConfs) spark.conf.set(k, v)
     spark.sparkContext.setLogLevel("INFO")
     log("All configs:\n\t" + spark.conf.getAll.toSeq.sortBy(_._1).mkString("\n\t"))
-
+    runQuery(s"SET hoodie.enable.data.skipping = true")
+    runQuery(s"SET hoodie.metadata.record.index.enable = true")
+    runQuery(s"SET hoodie.metadata.enable = true")
     runQuery(s"DROP DATABASE IF EXISTS ${dbName} CASCADE", s"etl0.1-drop-database")
     runQuery(s"CREATE DATABASE IF NOT EXISTS ${dbName}", s"etl0.2-create-database")
     runQuery(s"USE $dbName", s"etl0.3-use-database")

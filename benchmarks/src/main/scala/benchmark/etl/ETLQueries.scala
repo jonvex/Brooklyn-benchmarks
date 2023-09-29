@@ -155,7 +155,7 @@ class ETLQueries(
       LOCATION '${dbLocation}/store_sales_denorm'
       PARTITIONED BY (ss_sold_date_sk)
       ${tblProperties}
-      AS SELECT * FROM store_sales_denorm_start`
+      AS SELECT * FROM store_sales_denorm_start
       """,
     // Step 2 - Add the Medium Upsert data into the table
     "etl2-upsertMedium" ->
